@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f0f06">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>InBanana — Evidencija</title>
+<style>
+  :root {
+    --bg:#0f0f06;--surface:#1c1c0f;--surface2:#252515;--border:#3a3a20;
+    --accent:#c8e840;--accent2:#8fb820;--text:#f0f0d8;--text2:#9a9a70;
+    --red:#e84040;--orange:#e8a020;--green:#40c870;--radius:10px;
+    --font:'Courier New',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;min-height:100vh;overflow-x:hidden;}
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;height:52px;}
+  .nav-logo{padding:0 14px;font-size:13px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;flex-shrink:0;border-right:1px solid var(--border);height:100%;display:flex;align-items:center;}
+  .nav-tabs{display:flex;flex:1;height:100%;}
+  .nav-tab{flex:1;background:none;border:none;border-right:1px solid var(--border);color:var(--text2);font-family:var(--font);font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:0 4px;}
+  .nav-tab:last-child{border-right:none;}
+  .nav-tab.active{color:var(--accent);background:var(--surface);}
+  .page{display:none;padding:64px 14px 24px;min-height:100vh;}
+  .page.active{display:block;}
+  #video-container{position:relative;width:100%;max-width:400px;margin:0 auto 12px;border-radius:var(--radius);overflow:hidden;border:2px solid var(--border);background:#000;aspect-ratio:1;display:none;}
+  #scanner-video{width:100%;height:100%;object-fit:cover;display:block;}
+  .scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+  .scan-box{width:55%;height:55%;border:2px solid var(--accent);border-radius:4px;box-shadow:0 0 0 9999px rgba(0,0,0,0.45);position:relative;}
+  .scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);animation:sl 1.8s ease-in-out infinite;}
+  @keyframes sl{0%,100%{top:0;}50%{top:calc(100% - 2px);}}
+  #scanner-canvas{display:none;}
+  .hint{text-align:center;color:var(--text2);font-size:12px;letter-spacing:1px;margin-bottom:12px;}
+  #scan-status{text-align:center;font-size:12px;color:var(--text2);margin:8px 0;min-height:18px;}
+  .form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;max-width:400px;margin:0 auto 14px;display:none;}
+  .stablo-id{font-size:26px;color:var(--accent);letter-spacing:3px;margin-bottom:14px;text-align:center;}
+  .flabel{display:block;font-size:11px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+  .frow{margin-bottom:12px;}
+  .finput{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font);font-size:16px;padding:10px 12px;}
+  .finput:focus{outline:none;border-color:var(--accent);}
+  .kbtns{display:flex;gap:8px;}
+  .kbtn{flex:1;padding:10px 4px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer;text-align:center;}
+  .kbtn.sV{border-color:var(--green);color:var(--green);background:rgba(64,200,112,0.12);}
+  .kbtn.sS{border-color:var(--orange);color:var(--orange);background:rgba(232,160,32,0.12);}
+  .kbtn.sM{border-color:var(--red);color:var(--red);background:rgba(232,64,64,0.12);}
+  .btn{width:100%;border:none;border-radius:6px;font-family:var(--font);font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:13px;cursor:pointer;margin-top:8px;}
+  .bp{background:var(--accent);color:var(--bg);font-weight:bold;}
+  .bs{background:transparent;color:var(--text2);border:1px solid var(--border);}
+  .divider{text-align:center;color:var(--text2);font-size:11px;letter-spacing:2px;margin:14px 0;}
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+  .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;}
+  .stat-num{font-size:22px;color:var(--accent);display:block;margin-bottom:2px;}
+  .stat-lbl{font-size:10px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;}
+  .frow-f{display:flex;gap:8px;margin-bottom:14px;}
+  .fsel{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font);font-size:13px;padding:8px 10px;}
+  .elist{display:flex;flex-direction:column;gap:6px;}
+  .eitem{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .eid{color:var(--accent);font-size:13px;letter-spacing:2px;}
+  .emeta{color:var(--text2);font-size:11px;margin-top:2px;}
+  .eright{text-align:right;flex-shrink:0;}
+  .ekg{font-size:17px;}
+  .badge{font-size:10px;padding:2px 6px;border-radius:4px;display:inline-block;margin-top:2px;letter-spacing:1px;}
+  .bV{background:rgba(64,200,112,0.2);color:var(--green);}
+  .bS{background:rgba(232,160,32,0.2);color:var(--orange);}
+  .bM{background:rgba(232,64,64,0.2);color:var(--red);}
+  .dbtn{background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:2px 6px;flex-shrink:0;}
+  .empty{text-align:center;color:var(--text2);font-size:13px;padding:40px 0;letter-spacing:1px;}
+  .qinfo{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.7;}
+  .qinfo strong{color:var(--accent);}
+  .qctrl{display:flex;gap:8px;margin-bottom:14px;}
+  .qsel{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font);font-size:13px;padding:8px 10px;}
+  #qr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+  .qcard{background:white;border-radius:6px;padding:8px 6px;text-align:center;}
+  .qcard-id{font-size:9px;color:#222;font-family:monospace;letter-spacing:1px;margin-top:4px;font-weight:bold;}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--bg);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:bold;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+  #toast.show{opacity:1;}
+  @media print{nav,.qctrl,.qinfo,.btn{display:none!important;}body{background:white;}#qr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}.page{padding:0;}#page-qr{display:block!important;}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo">🍌</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('scanner',this)">Skeniraj</button>
+    <button class="nav-tab" onclick="showPage('evidencija',this)">Evidencija</button>
+    <button class="nav-tab" onclick="showPage('qr',this)">QR Kodovi</button>
+  </div>
+</nav>
+
+<div id="page-scanner" class="page active">
+  <div class="hint">Skeniraj QR kod stabla</div>
+  <div style="max-width:400px;margin:0 auto;">
+    <button class="btn bp" id="btn-scan" onclick="startScanner()">📷 Pokreni skener</button>
+  </div>
+  <div id="video-container">
+    <video id="scanner-video" playsinline autoplay muted></video>
+    <div class="scan-overlay"><div class="scan-box"><div class="scan-line"></div></div></div>
+  </div>
+  <canvas id="scanner-canvas"></canvas>
+  <div id="scan-status"></div>
+  <div class="form-card" id="entry-form">
+    <div class="stablo-id" id="form-id">—</div>
+    <div class="frow">
+      <label class="flabel">Kilogrami</label>
+      <input type="number" id="ikg" class="finput" placeholder="0.0" step="0.1" min="0" inputmode="decimal">
+    </div>
+    <div class="frow">
+      <label class="flabel">Kvaliteta plodova</label>
+      <div class="kbtns">
+        <button class="kbtn" id="kb-V" onclick="setKval('V')">Veliki<br><small>konzumni</small></button>
+        <button class="kbtn" id="kb-S" onclick="setKval('S')">Srednji</button>
+        <button class="kbtn" id="kb-M" onclick="setKval('M')">Mali</button>
+      </div>
+    </div>
+    <div class="frow">
+      <label class="flabel">Napomena</label>
+      <input type="text" id="inote" class="finput" placeholder="opcionalno...">
+    </div>
+    <button class="btn bp" onclick="saveEntry()">💾 Spremi</button>
+    <button class="btn bs" onclick="resetForm()">↩ Novo skeniranje</button>
+  </div>
+  <div class="divider">— ili ručni unos —</div>
+  <div style="max-width:400px;margin:0 auto;">
+    <div class="frow">
+      <label class="flabel">ID Stabla</label>
+      <input type="text" id="mid" class="finput" placeholder="npr. R3S12" oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <button class="btn bs" onclick="manualOpen()">Otvori formu</button>
+  </div>
+</div>
+
+<div id="page-evidencija" class="page">
+  <div class="stats-row">
+    <div class="stat-box"><span class="stat-num" id="s-unosa">0</span><span class="stat-lbl">Unosa</span></div>
+    <div class="stat-box"><span class="stat-num" id="s-kg">0</span><span class="stat-lbl">Ukupno kg</span></div>
+    <div class="stat-box"><span class="stat-num" id="s-stabla">0</span><span class="stat-lbl">Stabala</span></div>
+  </div>
+  <div class="frow-f">
+    <select class="fsel" id="f-red" onchange="renderEv()"><option value="">Svi redovi</option></select>
+    <select class="fsel" id="f-kval" onchange="renderEv()">
+      <option value="">Sve kvalitete</option>
+      <option value="V">Veliki</option><option value="S">Srednji</option><option value="M">Mali</option>
+    </select>
+  </div>
+  <div class="elist" id="elist"></div>
+  <div style="margin-top:20px;">
+    <button class="btn bp" onclick="exportCSV()">📥 Export CSV</button>
+    <button class="btn bs" onclick="clearAll()">🗑 Obriši sve</button>
+  </div>
+</div>
+
+<div id="page-qr" class="page">
+  <div class="qinfo"><strong>866 stabala</strong> u 17 redova.<br>Odaberi red → generiraj → ispiši → laminiraj.</div>
+  <div class="qctrl">
+    <select class="qsel" id="qr-red" onchange="renderQR()"><option value="">Odaberi red</option></select>
+    <button class="btn bp" style="width:auto;padding:8px 16px;font-size:12px;margin:0;" onclick="window.print()">🖨</button>
+  </div>
+  <div id="qr-grid"></div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script>
+const REDOVI={1:47,2:50,3:51,4:52,5:53,6:53,7:53,8:53,9:53,10:53,11:53,12:52,13:51,14:50,15:48,16:43,17:39};
+const getEnt=()=>{try{return JSON.parse(localStorage.getItem('ib2')||'[]');}catch{return[];}};
+const setEnt=a=>localStorage.setItem('ib2',JSON.stringify(a));
+
+function showPage(n,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+n).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(n==='evidencija'){initFRed();renderEv();}
+  if(n==='qr')initQR();
+}
+
+let vstream=null,stimer=null,selS=null,selK=null,isScanning=false;
+
+function startScanner(){
+  if(isScanning)return;
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}})
+  .then(s=>{
+    vstream=s;isScanning=true;
+    document.getElementById('video-container').style.display='block';
+    document.getElementById('btn-scan').style.display='none';
+    const v=document.getElementById('scanner-video');
+    v.srcObject=s;v.play();
+    v.onloadedmetadata=()=>{stimer=setInterval(doScan,200);};
+    setSt('Usmjeri kameru prema QR kodu...');
+  }).catch(e=>{setSt('Greška kamere: '+e.message);});
+}
+
+function doScan(){
+  const v=document.getElementById('scanner-video');
+  const c=document.getElementById('scanner-canvas');
+  if(!v.videoWidth||!v.videoHeight)return;
+  c.width=v.videoWidth;c.height=v.videoHeight;
+  const ctx=c.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(v,0,0);
+  if(typeof jsQR==='undefined')return;
+  const d=ctx.getImageData(0,0,c.width,c.height);
+  const r=jsQR(d.data,d.width,d.height,{inversionAttempts:'dontInvert'});
+  if(r&&r.data){handleQR(r.data);}
+}
+
+function handleQR(data){
+  stopScan();
+  let id=data.trim().toUpperCase();
+  if(id.startsWith('INBANANA:'))id=id.slice(9);
+  if(/^R\d+S\d+$/.test(id)){openForm(id);setSt('');}
+  else{setSt('Nepoznat kod: '+data);document.getElementById('btn-scan').style.display='block';}
+}
+
+function stopScan(){
+  clearInterval(stimer);stimer=null;isScanning=false;
+  if(vstream){vstream.getTracks().forEach(t=>t.stop());vstream=null;}
+  document.getElementById('video-container').style.display='none';
+}
+
+function setSt(m){document.getElementById('scan-status').textContent=m;}
+
+function openForm(id){
+  selS=id;selK=null;
+  document.getElementById('form-id').textContent=id;
+  document.getElementById('ikg').value='';
+  document.getElementById('inote').value='';
+  document.querySelectorAll('.kbtn').forEach(b=>b.className='kbtn');
+  document.getElementById('entry-form').style.display='block';
+  document.getElementById('btn-scan').style.display='none';
+  setTimeout(()=>document.getElementById('ikg').focus(),100);
+}
+
+function resetForm(){
+  selS=null;selK=null;
+  document.getElementById('entry-form').style.display='none';
+  document.getElementById('btn-scan').style.display='block';
+  setSt('');
+}
+
+function manualOpen(){
+  const v=document.getElementById('mid').value.trim().toUpperCase();
+  if(!/^R\d+S\d+$/.test(v)){showToast('Format: R3S12');return;}
+  stopScan();openForm(v);
+}
+
+function setKval(k){
+  selK=k;
+  document.querySelectorAll('.kbtn').forEach(b=>b.className='kbtn');
+  document.getElementById('kb-'+k).className='kbtn s'+k;
+}
+
+function saveEntry(){
+  const kg=parseFloat(document.getElementById('ikg').value);
+  if(!selS){showToast('Nema stabla');return;}
+  if(isNaN(kg)||kg<=0){showToast('Unesi kg');return;}
+  if(!selK){showToast('Odaberi kvalitetu');return;}
+  const a=getEnt();
+  a.push({id:Date.now(),stablo:selS,kg,kval:selK,note:document.getElementById('inote').value.trim(),datum:new Date().toLocaleDateString('hr-HR'),ts:Date.now()});
+  setEnt(a);
+  showToast('✓ '+selS+' — '+kg+' kg');
+  resetForm();
+}
+
+function initFRed(){
+  const s=document.getElementById('f-red');
+  if(s.options.length>1)return;
+  for(let r=1;r<=17;r++){const o=document.createElement('option');o.value=r;o.textContent='Red '+r;s.appendChild(o);}
+}
+
+function renderEv(){
+  initFRed();
+  const all=getEnt();
+  document.getElementById('s-unosa').textContent=all.length;
+  document.getElementById('s-kg').textContent=all.reduce((s,e)=>s+e.kg,0).toFixed(1);
+  document.getElementById('s-stabla').textContent=new Set(all.map(e=>e.stablo)).size;
+  const rF=document.getElementById('f-red').value;
+  const kF=document.getElementById('f-kval').value;
+  let f=all;
+  if(rF)f=f.filter(e=>e.stablo.match(/R(\d+)S/)?.[1]===rF);
+  if(kF)f=f.filter(e=>e.kval===kF);
+  f.sort((a,b)=>b.ts-a.ts);
+  const l=document.getElementById('elist');
+  if(!f.length){l.innerHTML='<div class="empty">Nema unosa</div>';return;}
+  const kn={V:'Veliki',S:'Srednji',M:'Mali'};
+  l.innerHTML=f.map(e=>`<div class="eitem"><div><div class="eid">${e.stablo}</div><div class="emeta">${e.datum}${e.note?' · '+e.note:''}</div></div><div class="eright"><div class="ekg">${e.kg} kg</div><span class="badge b${e.kval}">${kn[e.kval]}</span></div><button class="dbtn" onclick="delEnt(${e.id})">×</button></div>`).join('');
+}
+
+function delEnt(id){setEnt(getEnt().filter(e=>e.id!==id));renderEv();}
+
+function exportCSV(){
+  const a=getEnt();if(!a.length){showToast('Nema podataka');return;}
+  const rows=[['Stablo','Red','Kg','Kvaliteta','Napomena','Datum']];
+  a.forEach(e=>{const r=e.stablo.match(/R(\d+)S/)?.[1]||'';rows.push([e.stablo,r,e.kg,e.kval,e.note||'',e.datum]);});
+  const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const lnk=document.createElement('a');
+  lnk.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  lnk.download='inbanana_'+new Date().toISOString().slice(0,10)+'.csv';
+  lnk.click();
+}
+
+function clearAll(){if(!confirm('Obrisati sve?'))return;setEnt([]);renderEv();showToast('Obrisano');}
+
+function initQR(){
+  const s=document.getElementById('qr-red');
+  if(s.options.length>1)return;
+  for(let r=1;r<=17;r++){const o=document.createElement('option');o.value=r;o.textContent='Red '+r+' ('+REDOVI[r]+' stabala)';s.appendChild(o);}
+}
+
+function renderQR(){
+  const red=parseInt(document.getElementById('qr-red').value);
+  const g=document.getElementById('qr-grid');g.innerHTML='';
+  if(!red)return;
+  for(let s=1;s<=REDOVI[red];s++){
+    const id='R'+red+'S'+s;
+    const card=document.createElement('div');card.className='qcard';
+    const qd=document.createElement('div');
+    new QRCode(qd,{text:'INBANANA:'+id,width:110,height:110,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H});
+    const lb=document.createElement('div');lb.className='qcard-id';lb.textContent=id;
+    card.appendChild(qd);card.appendChild(lb);g.appendChild(card);
+  }
+}
+
+function showToast(m){
+  const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2400);
+}
+</script>
+</body>
+</html>
