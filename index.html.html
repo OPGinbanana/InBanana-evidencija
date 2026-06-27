@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1a1a0e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>InBanana — Evidencija</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+  :root {
+    --bg: #0f0f06;
+    --surface: #1c1c0f;
+    --surface2: #252515;
+    --border: #3a3a20;
+    --accent: #c8e840;
+    --accent2: #8fb820;
+    --text: #f0f0d8;
+    --text2: #9a9a70;
+    --red: #e84040;
+    --orange: #e8a020;
+    --green: #40c870;
+    --radius: 10px;
+    --font: 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0;
+    height: 52px;
+  }
+  .nav-logo {
+    padding: 0 16px;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    height: 100%;
+    display: flex; align-items: center;
+  }
+  .nav-tabs { display: flex; flex: 1; height: 100%; overflow-x: auto; }
+  .nav-tab {
+    flex: 1; min-width: 70px;
+    background: none; border: none; border-right: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all .15s;
+    padding: 0 8px;
+  }
+  .nav-tab:last-child { border-right: none; }
+  .nav-tab.active { color: var(--accent); background: var(--surface); }
+  .nav-tab:hover { color: var(--text); }
+
+  /* PAGES */
+  .page { display: none; padding: 68px 16px 24px; min-height: 100vh; }
+  .page.active { display: block; }
+
+  /* SCANNER PAGE */
+  #scanner-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 20px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 2px solid var(--border);
+    background: #000;
+    aspect-ratio: 1;
+  }
+  #scanner-video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  #scanner-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .scan-frame {
+    width: 60%; height: 60%;
+    border: 2px solid var(--accent);
+    border-radius: 4px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .scan-line {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.8;
+    animation: scanline 2s ease-in-out infinite;
+  }
+  @keyframes scanline {
+    0% { top: 0; }
+    50% { top: calc(100% - 2px); }
+    100% { top: 0; }
+  }
+  #scanner-canvas { display: none; }
+  #scan-result {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    max-width: 400px;
+    margin: 0 auto 16px;
+  }
+  #scan-result.hidden { display: none; }
+  .scan-stablo-id {
+    font-size: 28px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .form-row { margin-bottom: 12px; }
+  .form-label {
+    display: block;
+    font-size: 11px;
+    color: var(--text2);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .form-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+  .form-input:focus { outline: none; border-color: var(--accent); }
+  .kvaliteta-btns { display: flex; gap: 8px; }
+  .kval-btn {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+    transition: all .15s;
+  }
+  .kval-btn.active-V { border-color: var(--green); color: var(--green); background: rgba(64,200,112,0.1); }
+  .kval-btn.active-S { border-color: var(--orange); color: var(--orange); background: rgba(232,160,32,0.1); }
+  .kval-btn.active-M { border-color: var(--red); color: var(--red); background: rgba(232,64,64,0.1); }
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 14px;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: background .15s;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-secondary {
+    width: 100%;
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 10px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all .15s;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .scanner-hint {
+    text-align: center;
+    color: var(--text2);
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  #start-scanner-btn {
+    display: block;
+    margin: 0 auto 16px;
+    max-width: 400px;
+  }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--accent);
+    color: var(--bg);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    font-weight: bold;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity .3s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+
+  /* EVIDENCIJA PAGE */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 24px;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 2px;
+  }
+  .stat-label { font-size: 10px; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .filter-select {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+  .filter-select:focus { outline: none; border-color: var(--accent); }
+  .entry-list { display: flex; flex-direction: column; gap: 6px; }
+  .entry-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .entry-id { color: var(--accent); font-size: 14px; letter-spacing: 2px; }
+  .entry-meta { color: var(--text2); font-size: 11px; margin-top: 2px; }
+  .entry-right { text-align: right; }
+  .entry-kg { font-size: 18px; color: var(--text); }
+  .entry-kval {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 2px;
+    letter-spacing: 1px;
+  }
+  .kval-V { background: rgba(64,200,112,0.2); color: var(--green); }
+  .kval-S { background: rgba(232,160,32,0.2); color: var(--orange); }
+  .kval-M { background: rgba(232,64,64,0.2); color: var(--red); }
+  .empty-state {
+    text-align: center;
+    color: var(--text2);
+    font-size: 13px;
+    padding: 40px 0;
+    letter-spacing: 1px;
+  }
+  .export-btn-wrap { margin-top: 20px; }
+  .delete-btn {
+    background: none;
+    border: none;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: color .15s;
+  }
+  .delete-btn:hover { color: var(--red); }
+
+  /* QR PAGE */
+  .qr-controls {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .qr-filter {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 8px 10px;
+    flex: 1; min-width: 120px;
+  }
+  #qr-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .qr-card {
+    background: white;
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform .15s;
+  }
+  .qr-card:hover { transform: scale(1.03); }
+  .qr-card-id {
+    font-size: 10px;
+    color: #333;
+    font-family: var(--font);
+    letter-spacing: 1px;
+    margin-top: 4px;
+    font-weight: bold;
+  }
+  .qr-card canvas { width: 100% !important; height: auto !important; }
+  .section-title {
+    font-size: 11px;
+    color: var(--text2);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  .print-info {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+  .print-info strong { color: var(--accent); }
+
+  /* MANUAL ENTRY */
+  .manual-wrap {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  @media print {
+    nav, .qr-controls, .btn-primary, .btn-secondary, .print-info, .section-title { display: none !important; }
+    body { background: white; }
+    #qr-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .qr-card { break-inside: avoid; }
+    .page { padding: 0; }
+    #page-qr { display: block !important; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">🍌</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('scanner')">Skeniraj</button>
+    <button class="nav-tab" onclick="showPage('evidencija')">Evidencija</button>
+    <button class="nav-tab" onclick="showPage('qr')">QR Kodovi</button>
+  </div>
+</nav>
+
+<!-- SCANNER PAGE -->
+<div id="page-scanner" class="page active">
+  <div class="scanner-hint">Skeniraj QR kod stabla ili unesi ručno</div>
+  
+  <button class="btn-primary" id="start-scanner-btn" onclick="startScanner()">📷 Pokreni Skener</button>
+
+  <div id="scanner-wrap" style="display:none;">
+    <video id="scanner-video" playsinline autoplay muted></video>
+    <div id="scanner-overlay">
+      <div class="scan-frame">
+        <div class="scan-line"></div>
+      </div>
+    </div>
+  </div>
+  <canvas id="scanner-canvas"></canvas>
+
+  <div id="scan-result" class="hidden">
+    <div class="scan-stablo-id" id="scan-stablo-label">—</div>
+    
+    <div class="form-row">
+      <label class="form-label">Kilogrami</label>
+      <input type="number" id="input-kg" class="form-input" placeholder="0.0" step="0.1" min="0" inputmode="decimal">
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Kvaliteta plodova</label>
+      <div class="kvaliteta-btns">
+        <button class="kval-btn" onclick="setKval('V')">Veliki<br><small>konzumni</small></button>
+        <button class="kval-btn" onclick="setKval('S')">Srednji</button>
+        <button class="kval-btn" onclick="setKval('M')">Mali</button>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Napomena (opcionalno)</label>
+      <input type="text" id="input-note" class="form-input" placeholder="npr. oštećeni plodovi...">
+    </div>
+
+    <button class="btn-primary" onclick="saveEntry()">💾 Spremi</button>
+    <button class="btn-secondary" onclick="resetScanner()">↩ Nova skeniranja</button>
+  </div>
+
+  <!-- Manual entry -->
+  <div id="manual-entry" class="manual-wrap" style="margin-top:16px;">
+    <div class="section-title">Ručni unos</div>
+    <div class="form-row">
+      <label class="form-label">ID Stabla</label>
+      <input type="text" id="manual-id" class="form-input" placeholder="npr. R3S12" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <button class="btn-secondary" onclick="manualSelect()">Odaberi stablo</button>
+  </div>
+</div>
+
+<!-- EVIDENCIJA PAGE -->
+<div id="page-evidencija" class="page">
+  <div class="stats-row" id="stats-row">
+    <div class="stat-box"><span class="stat-num" id="stat-ukupno">0</span><span class="stat-label">Unosa</span></div>
+    <div class="stat-box"><span class="stat-num" id="stat-kg">0</span><span class="stat-label">Ukupno kg</span></div>
+    <div class="stat-box"><span class="stat-num" id="stat-stabla">0</span><span class="stat-label">Stabala</span></div>
+  </div>
+
+  <div class="filter-row">
+    <select class="filter-select" id="filter-red" onchange="renderEvidencija()">
+      <option value="">Svi redovi</option>
+    </select>
+    <select class="filter-select" id="filter-kval" onchange="renderEvidencija()">
+      <option value="">Sva kvaliteta</option>
+      <option value="V">Veliki (V)</option>
+      <option value="S">Srednji (S)</option>
+      <option value="M">Mali (M)</option>
+    </select>
+  </div>
+
+  <div class="entry-list" id="entry-list"></div>
+
+  <div class="export-btn-wrap">
+    <button class="btn-primary" onclick="exportCSV()">📥 Export CSV</button>
+    <button class="btn-secondary" onclick="clearAll()">🗑 Obriši sve podatke</button>
+  </div>
+</div>
+
+<!-- QR PAGE -->
+<div id="page-qr" class="page">
+  <div class="print-info">
+    Ukupno <strong>866 stabala</strong> u 17 redova.<br>
+    Filtriraj po redu, zatim <strong>Ispiši</strong> taj red.<br>
+    Laminiraj i priloži na stablo.
+  </div>
+  <div class="qr-controls">
+    <select class="qr-filter" id="qr-filter-red" onchange="renderQR()">
+      <option value="">Odaberi red za prikaz</option>
+    </select>
+    <button class="btn-primary" style="flex:0;padding:8px 16px;font-size:12px;" onclick="window.print()">🖨 Ispiši</button>
+  </div>
+  <div id="qr-grid"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const REDOVI = {
+  1:47, 2:50, 3:51, 4:52, 5:53, 6:53, 7:53,
+  8:53, 9:53, 10:53, 11:53, 12:52, 13:51, 14:50,
+  15:48, 16:43, 17:39
+};
+
+const APP_URL = window.location.href.split('?')[0];
+
+function getAllStabla() {
+  const all = [];
+  for (const [r, n] of Object.entries(REDOVI)) {
+    for (let s = 1; s <= n; s++) all.push(`R${r}S${s}`);
+  }
+  return all;
+}
+
+// ── STORAGE ──────────────────────────────────────────────────────────────────
+function getEntries() {
+  try { return JSON.parse(localStorage.getItem('inbanana_entries') || '[]'); }
+  catch { return []; }
+}
+function saveEntries(arr) {
+  localStorage.setItem('inbanana_entries', JSON.stringify(arr));
+}
+
+// ── NAV ──────────────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'evidencija') renderEvidencija();
+  if (name === 'qr') initQRPage();
+  if (name === 'scanner') { /* leave scanner as is */ }
+}
+
+// ── SCANNER ──────────────────────────────────────────────────────────────────
+let videoStream = null;
+let scanInterval = null;
+let selectedStablo = null;
+let selectedKval = null;
+
+function startScanner() {
+  const wrap = document.getElementById('scanner-wrap');
+  const btn = document.getElementById('start-scanner-btn');
+  wrap.style.display = 'block';
+  btn.style.display = 'none';
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(stream => {
+      videoStream = stream;
+      const video = document.getElementById('scanner-video');
+      video.srcObject = stream;
+      video.play();
+      scanInterval = setInterval(scanFrame, 200);
+    })
+    .catch(() => {
+      showToast('Kamera nedostupna — koristi ručni unos');
+      wrap.style.display = 'none';
+      btn.style.display = 'block';
+    });
+}
+
+function scanFrame() {
+  const video = document.getElementById('scanner-video');
+  const canvas = document.getElementById('scanner-canvas');
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(imageData.data, imageData.width, imageData.height);
+  if (code && code.data.startsWith('INBANANA:')) {
+    const id = code.data.replace('INBANANA:', '');
+    stopScanner();
+    openForm(id);
+  }
+}
+
+function stopScanner() {
+  clearInterval(scanInterval);
+  if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+  document.getElementById('scanner-wrap').style.display = 'none';
+}
+
+function openForm(id) {
+  selectedStablo = id;
+  selectedKval = null;
+  document.getElementById('scan-stablo-label').textContent = id;
+  document.getElementById('input-kg').value = '';
+  document.getElementById('input-note').value = '';
+  document.querySelectorAll('.kval-btn').forEach(b => b.className = 'kval-btn');
+  document.getElementById('scan-result').classList.remove('hidden');
+  document.getElementById('manual-entry').style.display = 'none';
+  document.getElementById('start-scanner-btn').style.display = 'none';
+  document.getElementById('input-kg').focus();
+}
+
+function resetScanner() {
+  selectedStablo = null;
+  selectedKval = null;
+  document.getElementById('scan-result').classList.add('hidden');
+  document.getElementById('manual-entry').style.display = 'block';
+  document.getElementById('start-scanner-btn').style.display = 'block';
+}
+
+function manualSelect() {
+  const val = document.getElementById('manual-id').value.trim().toUpperCase();
+  if (!val.match(/^R\d+S\d+$/)) { showToast('Format: R3S12'); return; }
+  openForm(val);
+}
+
+function setKval(k) {
+  selectedKval = k;
+  document.querySelectorAll('.kval-btn').forEach(b => b.className = 'kval-btn');
+  event.currentTarget.className = `kval-btn active-${k}`;
+}
+
+function saveEntry() {
+  const kg = parseFloat(document.getElementById('input-kg').value);
+  if (!selectedStablo) { showToast('Odaberi stablo'); return; }
+  if (isNaN(kg) || kg <= 0) { showToast('Unesi kg'); return; }
+  if (!selectedKval) { showToast('Odaberi kvalitetu'); return; }
+
+  const note = document.getElementById('input-note').value.trim();
+  const entry = {
+    id: Date.now(),
+    stablo: selectedStablo,
+    kg,
+    kval: selectedKval,
+    note,
+    datum: new Date().toLocaleDateString('hr-HR'),
+    ts: Date.now()
+  };
+
+  const entries = getEntries();
+  entries.push(entry);
+  saveEntries(entries);
+  showToast(`✓ ${selectedStablo} — ${kg} kg`);
+  resetScanner();
+}
+
+// ── EVIDENCIJA ────────────────────────────────────────────────────────────────
+function initFilters() {
+  const sel = document.getElementById('filter-red');
+  if (sel.options.length > 1) return;
+  for (let r = 1; r <= 17; r++) {
+    const o = document.createElement('option');
+    o.value = r; o.textContent = `Red ${r}`;
+    sel.appendChild(o);
+  }
+}
+
+function renderEvidencija() {
+  initFilters();
+  let entries = getEntries();
+  const redFilter = document.getElementById('filter-red').value;
+  const kvalFilter = document.getElementById('filter-kval').value;
+
+  if (redFilter) entries = entries.filter(e => e.stablo.startsWith(`R${redFilter}S`));
+  if (kvalFilter) entries = entries.filter(e => e.kval === kvalFilter);
+
+  const all = getEntries();
+  document.getElementById('stat-ukupno').textContent = all.length;
+  document.getElementById('stat-kg').textContent = all.reduce((s,e) => s + e.kg, 0).toFixed(1);
+  document.getElementById('stat-stabla').textContent = new Set(all.map(e => e.stablo)).size;
+
+  const list = document.getElementById('entry-list');
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="empty-state">Nema unosa</div>';
+    return;
+  }
+
+  entries.sort((a,b) => b.ts - a.ts);
+  list.innerHTML = entries.map(e => `
+    <div class="entry-item">
+      <div>
+        <div class="entry-id">${e.stablo}</div>
+        <div class="entry-meta">${e.datum}${e.note ? ' · ' + e.note : ''}</div>
+      </div>
+      <div class="entry-right">
+        <div class="entry-kg">${e.kg} kg</div>
+        <span class="entry-kval kval-${e.kval}">${e.kval === 'V' ? 'Veliki' : e.kval === 'S' ? 'Srednji' : 'Mali'}</span>
+      </div>
+      <button class="delete-btn" onclick="deleteEntry(${e.id})">×</button>
+    </div>
+  `).join('');
+}
+
+function deleteEntry(id) {
+  const entries = getEntries().filter(e => e.id !== id);
+  saveEntries(entries);
+  renderEvidencija();
+}
+
+function exportCSV() {
+  const entries = getEntries();
+  if (entries.length === 0) { showToast('Nema podataka'); return; }
+  const rows = [['Stablo','Red','Kg','Kvaliteta','Napomena','Datum']];
+  entries.forEach(e => {
+    const red = e.stablo.match(/R(\d+)S/)?.[1] || '';
+    rows.push([e.stablo, red, e.kg, e.kval, e.note || '', e.datum]);
+  });
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = `inbanana_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function clearAll() {
+  if (!confirm('Obrisati sve unose? Ova akcija je trajna.')) return;
+  saveEntries([]);
+  renderEvidencija();
+  showToast('Obrisano');
+}
+
+// ── QR KODOVI ────────────────────────────────────────────────────────────────
+function initQRPage() {
+  const sel = document.getElementById('qr-filter-red');
+  if (sel.options.length > 1) return;
+  for (let r = 1; r <= 17; r++) {
+    const o = document.createElement('option');
+    o.value = r; o.textContent = `Red ${r} (${REDOVI[r]} stabala)`;
+    sel.appendChild(o);
+  }
+}
+
+function renderQR() {
+  const red = document.getElementById('qr-filter-red').value;
+  const grid = document.getElementById('qr-grid');
+  grid.innerHTML = '';
+  if (!red) return;
+
+  const n = REDOVI[parseInt(red)];
+  for (let s = 1; s <= n; s++) {
+    const id = `R${red}S${s}`;
+    const card = document.createElement('div');
+    card.className = 'qr-card';
+
+    const qrDiv = document.createElement('div');
+    new QRCode(qrDiv, {
+      text: `INBANANA:${id}`,
+      width: 120, height: 120,
+      colorDark: '#000000', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    const label = document.createElement('div');
+    label.className = 'qr-card-id';
+    label.textContent = id;
+
+    card.appendChild(qrDiv);
+    card.appendChild(label);
+    grid.appendChild(card);
+  }
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── URL QR PARAM ──────────────────────────────────────────────────────────────
+const urlParams = new URLSearchParams(window.location.search);
+const qrParam = urlParams.get('stablo');
+if (qrParam) openForm(qrParam.toUpperCase());
+</script>
+</body>
+</html>
